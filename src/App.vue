@@ -1,53 +1,33 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
-
-const todos = ref([])
-const name = ref('')
+import { ref, onMounted, watch } from 'vue'
+import { useTodoListStore } from './stores/todoListStore'
+import Header from './components/Header.vue'
 
 const input_content = ref('')
 const input_category = ref(null)
+const todoStore = useTodoListStore()
 
 const addTodo = () => {
-  if(input_content.value.trim() === '' || input_category.value === null) return
+  if (input_content.value.trim() === '' || input_category.value === null) return
 
-  todos.value.push({
+  const newTodo = {
     content: input_content.value,
     category: input_category.value,
     done: false,
-    createdAt: new Date().getTime()
-  })
+    createdAt: Date.now()
+  }
+
+  todoStore.addTodo(newTodo)
+  input_content.value = ''
+  input_category.value = null
 }
-
-const removeTodo = (todoToRemove) => {
-  todos.value = todos.value.filter(todo => todo !== todoToRemove)
-}
-
-watch(todos, (newTodos) => {
-  localStorage.setItem('todos', JSON.stringify(newTodos))
-}, {
-  deep: true
-})
-
-watch(name, (newName) => {
-  localStorage.setItem('name', newName)
-})
-
-onMounted(() => {
-  name.value = localStorage.getItem('name') || ''
-  todos.value = JSON.parse(localStorage.getItem('todos')) || []
-})
-
-const todos_asc = computed(() => todos.value.sort((a, b) => b.createdAt - a.createdAt))
 </script>
 
 <template>
   <div class="app">
-    <section class="greeting">
-      <h2 class="title">Nice to see you, <input type="text" placeholder="Name here" v-model="name" /></h2>
-    </section>
+    <Header />
     <section class="create-todo">
       <h3>CREATE A TODO</h3>
-
       <form @submit.prevent="addTodo">
         <h4>What's on your todo list?</h4>
         <input type="text" placeholder="e.g. make a sandwich" v-model="input_content" />
@@ -76,21 +56,18 @@ const todos_asc = computed(() => todos.value.sort((a, b) => b.createdAt - a.crea
     </section>
     <section class="todo-list">
       <h3>TODO LIST</h3>
-      <div v-for="todo in todos_asc" :class="`todo-item && ${todo.done && 'done'}`">
-
+      <div v-for="todo in todoStore.todos" :key="todo.createdAt" :class="`todo-item ${todo.done ? 'done' : ''}`">
         <label>
           <input type="checkbox" v-model="todo.done" />
           <span :class="`bubble ${todo.category}`"></span>
         </label>
-
         <div class="todo-content">
+          [[ {{ todo.category.toUpperCase() }} ]]
           <input type="text" v-model="todo.content" />
         </div>
-
         <div class="actions">
-          <button class="delete" @click="removeTodo(todo)">Delete</button>
+          <button class="delete" @click="todoStore.removeTodo(todo)">Delete</button>
         </div>
-
       </div>
     </section>
   </div>
